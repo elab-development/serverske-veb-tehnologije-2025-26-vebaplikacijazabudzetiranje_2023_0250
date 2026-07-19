@@ -1,10 +1,11 @@
 {
   "name": "serverske-veb-tehnologije-2025-26-vebaplikacijazabudzetiranje_2023_0250",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "aplikacija za deljenje troskova",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "repository": {
     "type": "git",
@@ -23,7 +24,8 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "mysql2": "^3.23.0"
+    "mysql2": "^3.23.0",
+    "sequelize": "^6.37.8"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
