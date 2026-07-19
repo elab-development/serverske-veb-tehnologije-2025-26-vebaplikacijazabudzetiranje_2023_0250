@@ -1,7 +1,7 @@
 {
   "name": "serverske-veb-tehnologije-2025-26-vebaplikacijazabudzetiranje_2023_0250",
   "version": "1.0.0",
-  "description": "aplikacija za deljenje troskova",
+  "description": "Aplikacija za deljenje troskova",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
