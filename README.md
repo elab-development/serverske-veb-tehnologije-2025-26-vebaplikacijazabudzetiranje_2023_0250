@@ -114,7 +114,7 @@ npm start
 
 ## Testiranje REST API-ja
 
-REST API se testira pomoću alata **Postman**.
+REST API se testira pomoću alata **Thunder Client**.
 
 Primer test zahteva:
 
@@ -166,4 +166,4 @@ expense-sharing-app/
 * `node_modules` se ne čuva u GitHub repozitorijumu. Nakon preuzimanja projekta kreira se pomoću `npm install`.
 * `.env` se ne čuva u GitHub repozitorijumu i svaki član tima ga kreira lokalno.
 * `package.json` i `package-lock.json` su deo repozitorijuma.
-* Aplikacija se trenutno testira preko Postman-a i nema frontend deo.
+* Aplikacija se trenutno testira preko Thunder Client-a i nema frontend deo.
