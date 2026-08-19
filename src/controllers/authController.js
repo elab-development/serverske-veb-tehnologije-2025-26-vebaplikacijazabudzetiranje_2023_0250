@@ -114,4 +114,14 @@ async function login(req, res) {
   }
 }
 
-module.exports = { register, login };
+// ============================================
+// LOGOUT
+// ============================================
+async function logout(req, res) {
+  // Kao što smo objasnili - server ne "pamti" tokene, pa ovde nema šta stvarno da se obriše
+  // Ovaj endpoint postoji formalno, pravi logout (brisanje tokena) radi frontend
+  return res.status(200).json({ message: "Uspešno ste odjavljeni." });
+}
+
+
+module.exports = { register, login, logout };
