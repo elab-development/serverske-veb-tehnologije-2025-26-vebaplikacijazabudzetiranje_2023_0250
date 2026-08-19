@@ -10,6 +10,7 @@ Aplikacija omogućava korisnicima da registruju nalog, prijave se, kreiraju i de
 * Express.js
 * MySQL
 * Sequelize
+* Sequelize CLI (migracije)
 * JWT
 * bcrypt
 * dotenv
@@ -71,13 +72,25 @@ Vrednosti `DB_USER`, `DB_PASSWORD` i ostalih parametara potrebno je prilagoditi 
 
 Pre pokretanja aplikacije potrebno je imati instaliran i pokrenut MySQL server.
 
-Potrebno je kreirati bazu:
+Podešavanja baze se nalaze u `.env` fajlu.
+
+Bazu je moguće kreirati ručno:
 
 ```sql
 CREATE DATABASE expense_app;
 ```
 
-Podešavanja baze se nalaze u `.env` fajlu.
+ili preko Sequelize CLI-ja:
+
+```bash
+npx sequelize-cli db:create
+```
+
+Nakon toga je potrebno primeniti migracije kako bi se napravile tabele u bazi:
+
+```bash
+npx sequelize-cli db:migrate
+```
 
 ## Pokretanje aplikacije
 
@@ -109,6 +122,22 @@ Primer test zahteva:
 GET http://localhost:3000/
 ```
 
+## Autentifikacija
+
+Aplikacija trenutno ima implementiranu registraciju, prijavu i odjavu korisnika preko JWT tokena.
+
+| Ruta | Metoda | Opis | Telo zahteva |
+| --- | --- | --- | --- |
+| `/api/auth/register` | POST | Registracija novog korisnika (uloga `user` po difoltu) | `{ "name": "", "email": "", "password": "" }` |
+| `/api/auth/login` | POST | Prijava korisnika, vraća JWT token | `{ "email": "", "password": "" }` |
+| `/api/auth/logout` | POST | Odjava korisnika (zahteva token) | - |
+
+Za pristup zaštićenim rutama (npr. `/api/auth/logout`) potrebno je poslati JWT token dobijen prilikom login-a u `Authorization` header-u:
+
+```text
+Authorization: Bearer <token>
+```
+
 ## Struktura projekta
 
 ```text
@@ -117,13 +146,14 @@ expense-sharing-app/
 ├── src/
 │   ├── controllers/
 │   ├── routes/
-│   ├── services/
-│   ├── models/
 │   ├── middleware/
+│   ├── models/
+│   ├── migrations/
 │   ├── config/
 │   └── app.js
 │
 ├── server.js
+├── .sequelizerc
 ├── package.json
 ├── package-lock.json
 ├── .env
