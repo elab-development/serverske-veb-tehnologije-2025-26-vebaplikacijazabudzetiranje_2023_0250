@@ -1,169 +1,59 @@
-# Expense Sharing App
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-Veb aplikacija za deljenje i praćenje troškova, razvijena u okviru predmeta **Serverske veb tehnologije 2025/26**.
+<p align="center">
+<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+</p>
 
-Aplikacija omogućava korisnicima da registruju nalog, prijave se, kreiraju i dele troškove, kao i da prate dugovanja između korisnika.
+## About Laravel
 
-## Tehnologije
+Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
-* Node.js
-* Express.js
-* MySQL
-* Sequelize
-* Sequelize CLI (migracije)
-* JWT
-* bcrypt
-* dotenv
-* Nodemon
-* REST API
+- [Simple, fast routing engine](https://laravel.com/docs/routing).
+- [Powerful dependency injection container](https://laravel.com/docs/container).
+- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
+- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
+- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
+- [Robust background job processing](https://laravel.com/docs/queues).
+- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-## Preuzimanje projekta
+Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
-Klonirati repozitorijum:
+## Learning Laravel
 
-```bash
-git clone https://github.com/elab-development/serverske-veb-tehnologije-2025-26-vebaplikacijazabudzetiranje_2023_0250.git
-```
+Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
 
-Ući u folder projekta:
+If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
 
-```bash
-cd serverske-veb-tehnologije-2025-26-vebaplikacijazabudzetiranje_2023_0250
-```
+## Laravel Sponsors
 
-## Instalacija biblioteka
+We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
 
-Nakon preuzimanja projekta potrebno je instalirati sve potrebne biblioteke:
+### Premium Partners
 
-```bash
-npm install
-```
+- **[Vehikl](https://vehikl.com)**
+- **[Tighten Co.](https://tighten.co)**
+- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
+- **[64 Robots](https://64robots.com)**
+- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
+- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
+- **[Redberry](https://redberry.international/laravel-development)**
+- **[Active Logic](https://activelogic.com)**
 
-Nije potrebno ručno instalirati svaku biblioteku pojedinačno. Komanda `npm install` automatski instalira sve dependencies i devDependencies navedene u `package.json` fajlu.
+## Contributing
 
-## Podešavanje `.env` fajla
+Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
 
-`.env` fajl nije deo GitHub repozitorijuma zbog bezbednosti.
+## Code of Conduct
 
-Potrebno je napraviti novi fajl pod nazivom:
+In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
 
-```text
-.env
-```
+## Security Vulnerabilities
 
-u glavnom folderu projekta.
+If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
-U njega je potrebno uneti konfiguraciju:
+## License
 
-```env
-PORT=3000
-
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=
-DB_NAME=expense_app
-
-JWT_SECRET=nekaTajnaSifra
-```
-
-Vrednosti `DB_USER`, `DB_PASSWORD` i ostalih parametara potrebno je prilagoditi lokalnoj MySQL konfiguraciji.
-
-## Baza podataka
-
-Pre pokretanja aplikacije potrebno je imati instaliran i pokrenut MySQL server.
-
-Podešavanja baze se nalaze u `.env` fajlu.
-
-Bazu je moguće kreirati ručno:
-
-```sql
-CREATE DATABASE expense_app;
-```
-
-ili preko Sequelize CLI-ja:
-
-```bash
-npx sequelize-cli db:create
-```
-
-Nakon toga je potrebno primeniti migracije kako bi se napravile tabele u bazi:
-
-```bash
-npx sequelize-cli db:migrate
-```
-
-## Pokretanje aplikacije
-
-Za pokretanje aplikacije u razvojnom režimu koristiti:
-
-```bash
-npm run dev
-```
-
-Aplikacija će biti dostupna na:
-
-```text
-http://localhost:3000
-```
-
-Za standardno pokretanje koristiti:
-
-```bash
-npm start
-```
-
-## Testiranje REST API-ja
-
-REST API se testira pomoću alata **Thunder Client**.
-
-Primer test zahteva:
-
-```text
-GET http://localhost:3000/
-```
-
-## Autentifikacija
-
-Aplikacija trenutno ima implementiranu registraciju, prijavu i odjavu korisnika preko JWT tokena.
-
-| Ruta | Metoda | Opis | Telo zahteva |
-| --- | --- | --- | --- |
-| `/api/auth/register` | POST | Registracija novog korisnika (uloga `user` po difoltu) | `{ "name": "", "email": "", "password": "" }` |
-| `/api/auth/login` | POST | Prijava korisnika, vraća JWT token | `{ "email": "", "password": "" }` |
-| `/api/auth/logout` | POST | Odjava korisnika (zahteva token) | - |
-
-Za pristup zaštićenim rutama (npr. `/api/auth/logout`) potrebno je poslati JWT token dobijen prilikom login-a u `Authorization` header-u:
-
-```text
-Authorization: Bearer <token>
-```
-
-## Struktura projekta
-
-```text
-expense-sharing-app/
-│
-├── src/
-│   ├── controllers/
-│   ├── routes/
-│   ├── middleware/
-│   ├── models/
-│   ├── migrations/
-│   ├── config/
-│   └── app.js
-│
-├── server.js
-├── .sequelizerc
-├── package.json
-├── package-lock.json
-├── .env
-├── .gitignore
-└── README.md
-```
-
-## Važne napomene
-
-* `node_modules` se ne čuva u GitHub repozitorijumu. Nakon preuzimanja projekta kreira se pomoću `npm install`.
-* `.env` se ne čuva u GitHub repozitorijumu i svaki član tima ga kreira lokalno.
-* `package.json` i `package-lock.json` su deo repozitorijuma.
-* Aplikacija se trenutno testira preko Thunder Client-a i nema frontend deo.
+The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
