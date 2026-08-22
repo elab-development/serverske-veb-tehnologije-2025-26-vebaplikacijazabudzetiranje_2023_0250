@@ -1,59 +1,164 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Expense Sharing App
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Veb aplikacija za deljenje i praćenje troškova, razvijena u okviru predmeta **Serverske veb tehnologije 2025/26**.
 
-## About Laravel
+Aplikacija omogućava korisnicima da registruju nalog, prijave se, kreiraju i dele troškove, kao i da prate dugovanja između korisnika.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Projekat je originalno razvijen u Node.js/Express-u, a zatim je u potpunosti prebačen na **Laravel**.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Tehnologije
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+* PHP 8.2+
+* Laravel 12
+* MySQL
+* Eloquent ORM (Laravel migracije)
+* Laravel Sanctum (autentifikacija preko API tokena)
+* Composer
+* REST API
 
-## Learning Laravel
+## Preuzimanje projekta
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Klonirati repozitorijum:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+git clone https://github.com/elab-development/serverske-veb-tehnologije-2025-26-vebaplikacijazabudzetiranje_2023_0250.git
+```
 
-## Laravel Sponsors
+Ući u folder projekta:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+cd serverske-veb-tehnologije-2025-26-vebaplikacijazabudzetiranje_2023_0250
+```
 
-### Premium Partners
+## Instalacija biblioteka
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Potrebno je imati instaliran **PHP 8.2+** i **Composer**.
 
-## Contributing
+Nakon preuzimanja projekta potrebno je instalirati sve potrebne pakete:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+composer install
+```
 
-## Code of Conduct
+Nije potrebno ručno instalirati svaki paket pojedinačno. Komanda `composer install` automatski instalira sve zavisnosti navedene u `composer.json` fajlu (Laravel framework, Sanctum i ostale pakete).
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Podešavanje `.env` fajla
 
-## Security Vulnerabilities
+`.env` fajl nije deo GitHub repozitorijuma zbog bezbednosti.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Nakon `composer install`, iskopirati primer konfiguracije:
 
-## License
+```bash
+cp .env.example .env
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Zatim generisati aplikacioni ključ (Laravel ga koristi za enkripciju):
+
+```bash
+php artisan key:generate
+```
+
+U `.env` fajlu podesiti konekciju ka bazi:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=expense_app_laravel
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+Vrednosti `DB_USERNAME`, `DB_PASSWORD` i ostalih parametara potrebno je prilagoditi lokalnoj MySQL konfiguraciji.
+
+## Baza podataka
+
+Pre pokretanja aplikacije potrebno je imati instaliran i pokrenut MySQL server (npr. preko XAMPP-a).
+
+Bazu je moguće napraviti ručno:
+
+```sql
+CREATE DATABASE expense_app_laravel;
+```
+
+Nakon toga primeniti migracije kako bi se napravile tabele u bazi:
+
+```bash
+php artisan migrate
+```
+
+Migracije prave sledeće tabele: `users` (sa `role` kolonom: `admin`, `authenticated_user`, `user`), `personal_access_tokens` (za Sanctum tokene), `cache` i `jobs`.
+
+## Pokretanje aplikacije
+
+Za pokretanje aplikacije u razvojnom režimu koristiti:
+
+```bash
+php artisan serve
+```
+
+Aplikacija će biti dostupna na:
+
+```text
+http://127.0.0.1:8000
+```
+
+## Testiranje REST API-ja
+
+REST API se testira pomoću alata **Thunder Client** ili `curl`.
+
+Primer test zahteva:
+
+```text
+POST http://127.0.0.1:8000/api/register
+```
+
+## Autentifikacija
+
+Aplikacija ima implementiranu registraciju, prijavu i odjavu korisnika preko **Laravel Sanctum** API tokena.
+
+| Ruta | Metoda | Opis | Telo zahteva |
+| --- | --- | --- | --- |
+| `/api/register` | POST | Registracija novog korisnika (uloga `user` po difoltu) | `{ "name": "", "email": "", "password": "" }` |
+| `/api/login` | POST | Prijava korisnika, vraća Sanctum token | `{ "email": "", "password": "" }` |
+| `/api/logout` | POST | Odjava korisnika (zahteva token, briše ga iz baze) | - |
+
+Za pristup zaštićenim rutama (npr. `/api/logout`) potrebno je poslati token dobijen prilikom login-a u `Authorization` header-u:
+
+```text
+Authorization: Bearer <token>
+```
+
+## Struktura projekta
+
+```text
+expense-sharing-app/
+│
+├── app/
+│   ├── Http/
+│   │   └── Controllers/
+│   │       └── AuthController.php
+│   └── Models/
+│       └── User.php
+│
+├── database/
+│   ├── migrations/
+│   ├── factories/
+│   └── seeders/
+│
+├── routes/
+│   └── api.php
+│
+├── config/
+├── public/
+├── composer.json
+├── .env
+└── README.md
+```
+
+## Važne napomene
+
+* `vendor/` se ne čuva u GitHub repozitorijumu. Nakon preuzimanja projekta kreira se pomoću `composer install`.
+* `.env` se ne čuva u GitHub repozitorijumu i svaki član tima ga kreira lokalno na osnovu `.env.example`.
+* `composer.json` i `composer.lock` su deo repozitorijuma.
+* Aplikacija se trenutno testira preko Thunder Client-a i nema frontend deo.

@@ -15,7 +15,6 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         // Validator je Laravel-ov ugrađen sistem za proveru podataka
-        // (u Node-u smo ovo ručno proveravale sa if(!name || !email...))
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users', // "unique:users" - automatski proverava da email nije zauzet
@@ -28,8 +27,7 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Kreiramo korisnika - PRIMETI: ne pišemo ručno bcrypt.hash()!
-        // Setila si se da User model ima 'password' => 'hashed' u casts() -
+        // Kreiramo korisnika 
         // Laravel AUTOMATSKI hash-uje ovo polje čim ga postavimo
         $user = User::create([
             'name' => $request->name,
@@ -67,7 +65,6 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         // Hash::check() proverava da li se uneta lozinka poklapa sa hash-om iz baze
-        // (ekvivalent bcrypt.compare() iz Node-a)
         if (!$user || !Hash::check($request->password, $user->password)) {
             // status 401 = "Unauthorized" - namerno ista poruka za oba slučaja
             // (pogrešan email ILI pogrešna lozinka) iz sigurnosnih razloga
