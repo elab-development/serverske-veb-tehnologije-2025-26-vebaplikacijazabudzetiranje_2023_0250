@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Expense;
+use Illuminate\Support\Facades\Http;
 
 class ExpenseController extends Controller
 {
@@ -86,4 +87,19 @@ $expense->delete();
 
 return response()->json(['message' => 'Trošak je uspešno obrisan']);
     }
+    public function exchangeRate(string $currency)
+{
+    $response = Http::get("https://api.frankfurter.app/latest", [
+        'from' => 'EUR',
+        'to' => strtoupper($currency),
+    ]);
+
+    if (!$response->successful()) {
+        return response()->json(['message' => 'Greška prilikom pribavljanja kursa'], 500);
+    }
+
+    return response()->json($response->json());
 }
+}
+
+

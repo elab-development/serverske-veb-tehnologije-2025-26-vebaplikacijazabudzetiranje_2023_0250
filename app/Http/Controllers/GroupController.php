@@ -82,4 +82,31 @@ $group = Group::with('creator', 'members', 'expenses')->find($id);
 
     return response()->json(['message' => 'Grupa je uspešno obrisana']);
 }
+public function expenses(string $id)
+{
+    $group = Group::find($id);
+
+    if (!$group) {
+        return response()->json(['message' => 'Grupa nije pronađena'], 404);
+    }
+
+    return response()->json($group->expenses()->with('payer')->get());
+}
+
+public function addMember(Request $request, string $id)
+{
+    $group = Group::find($id);
+
+    if (!$group) {
+        return response()->json(['message' => 'Grupa nije pronađena'], 404);
+    }
+
+    $validated = $request->validate([
+        'user_id' => 'required|exists:users,id',
+    ]);
+
+    $group->members()->attach($validated['user_id']);
+
+    return response()->json(['message' => 'Korisnik je uspešno dodat u grupu']);
+}
 }
