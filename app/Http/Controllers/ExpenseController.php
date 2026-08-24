@@ -89,7 +89,7 @@ return response()->json(['message' => 'Trošak je uspešno obrisan']);
     }
     public function exchangeRate(string $currency)
 {
-    $response = Http::get("https://api.frankfurter.app/latest", [
+        $response = Http::withOptions(['verify' => false])->get("https://api.frankfurter.app/latest", [
         'from' => 'EUR',
         'to' => strtoupper($currency),
     ]);
