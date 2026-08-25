@@ -2,19 +2,19 @@
 
 Veb aplikacija za deljenje i praćenje troškova, razvijena u okviru predmeta **Serverske veb tehnologije 2025/26**.
 
-Aplikacija omogućava korisnicima da registruju nalog, prijave se, kreiraju i dele troškove, kao i da prate dugovanja između korisnika.
+Aplikacija omogućava korisnicima da registruju nalog, prijave se, prave grupe, dodaju članove u grupe, kreiraju i dele troškove unutar grupe, i prate ko je koliko platio.
 
-Projekat je originalno razvijen u Node.js/Express-u, a zatim je u potpunosti prebačen na **Laravel**.
+Projekat je razvijen u **Laravel-u**.
 
 ## Tehnologije
 
 * PHP 8.2+
 * Laravel 12
 * MySQL
-* Eloquent ORM (Laravel migracije)
+* Eloquent ORM (Laravel migracije, factory-ji, seederi)
 * Laravel Sanctum (autentifikacija preko API tokena)
 * Composer
-* REST API
+* REST API (uključujući poziv spoljnog javnog servisa — [frankfurter.app](https://frankfurter.app) za kursnu listu)
 
 ## Preuzimanje projekta
 
@@ -40,21 +40,16 @@ Nakon preuzimanja projekta potrebno je instalirati sve potrebne pakete:
 composer install
 ```
 
-Nije potrebno ručno instalirati svaki paket pojedinačno. Komanda `composer install` automatski instalira sve zavisnosti navedene u `composer.json` fajlu (Laravel framework, Sanctum i ostale pakete).
+Komanda automatski instalira sve zavisnosti iz `composer.json` (Laravel framework, Sanctum, Doctrine DBAL za izmenu kolona, i ostalo).
 
 ## Podešavanje `.env` fajla
 
 `.env` fajl nije deo GitHub repozitorijuma zbog bezbednosti.
 
-Nakon `composer install`, iskopirati primer konfiguracije:
+Iskopirati primer konfiguracije i generisati aplikacioni ključ:
 
 ```bash
 cp .env.example .env
-```
-
-Zatim generisati aplikacioni ključ (Laravel ga koristi za enkripciju):
-
-```bash
 php artisan key:generate
 ```
 
@@ -82,52 +77,95 @@ CREATE DATABASE expense_app_laravel;
 ```
 
 Nakon toga primeniti migracije kako bi se napravile tabele u bazi:
-
 ```bash
 php artisan migrate
 ```
 
-Migracije prave sledeće tabele: `users` (sa `role` kolonom: `admin`, `authenticated_user`, `user`), `personal_access_tokens` (za Sanctum tokene), `cache` i `jobs`.
+Opciono, napuniti bazu test podacima (10 grupa, 20 troškova sa nasumičnim podacima):
+
+```bash
+php artisan db:seed
+```
+
+ili oboje odjednom (briše i ponovo pravi sve tabele):
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+### Tabele u bazi
+
+| Tabela | Opis |
+| --- | --- |
+| `users` | Korisnici, sa `role` kolonom (`admin`, `authenticated_user`, `user`) |
+| `groups` | Grupe za deljenje troškova, svaka ima kreatora (`created_by`) |
+| `group_user` | Pivot tabela — članstvo korisnika u grupama (many-to-many) |
+| `expenses` | Troškovi, vezani za grupu (`group_id`) i platioca (`paid_by`) |
+| `personal_access_tokens` | Sanctum API tokeni |
 
 ## Pokretanje aplikacije
-
 Za pokretanje aplikacije u razvojnom režimu koristiti:
-
 ```bash
 php artisan serve
 ```
 
-Aplikacija će biti dostupna na:
-
-```text
-http://127.0.0.1:8000
-```
+Aplikacija je dostupna na 
+http://127.0.0.1:8000.
 
 ## Testiranje REST API-ja
 
-REST API se testira pomoću alata **Thunder Client** ili `curl`.
+Sve rute se testiraju kroz **Postman**. Rute za grupe i troškove zahtevaju autentifikaciju (`Authorization: Bearer <token>` dobijen kroz `/api/login`).
 
-Primer test zahteva:
+## Modeli i relacije
 
-```text
-POST http://127.0.0.1:8000/api/register
-```
+* **User** — `hasMany` Expense (kao platilac), `belongsToMany` Group (preko `group_user`)
+* **Group** — `belongsTo` User (kreator), `belongsToMany` User (članovi), `hasMany` Expense
+* **Expense** — `belongsTo` Group, `belongsTo` User (platilac)
 
 ## Autentifikacija
-
-Aplikacija ima implementiranu registraciju, prijavu i odjavu korisnika preko **Laravel Sanctum** API tokena.
-
 | Ruta | Metoda | Opis | Telo zahteva |
 | --- | --- | --- | --- |
 | `/api/register` | POST | Registracija novog korisnika (uloga `user` po difoltu) | `{ "name": "", "email": "", "password": "" }` |
 | `/api/login` | POST | Prijava korisnika, vraća Sanctum token | `{ "email": "", "password": "" }` |
-| `/api/logout` | POST | Odjava korisnika (zahteva token, briše ga iz baze) | - |
+| `/api/logout` | POST 🔒 | Odjava korisnika, briše token | - |
 
-Za pristup zaštićenim rutama (npr. `/api/logout`) potrebno je poslati token dobijen prilikom login-a u `Authorization` header-u:
+## Grupe
 
-```text
-Authorization: Bearer <token>
-```
+Sve rute zahtevaju autentifikaciju (`auth:sanctum`).
+
+| Ruta | Metoda | Opis |
+| --- | --- | --- |
+| `/api/groups` | GET | Lista grupa (paginacija po 5, filter `?name=`) |
+| `/api/groups` | POST | Kreiranje grupe (ulogovani korisnik postaje kreator) |
+| `/api/groups/{id}` | GET | Detalji grupe (sa kreatorom, članovima, troškovima) |
+| `/api/groups/{id}` | PUT/PATCH | Izmena grupe |
+| `/api/groups/{id}` | DELETE | Brisanje grupe — **ograničeno po ulozi**: `admin` briše svaku, `user` samo svoju, `authenticated_user` ne sme nijednu |
+| `/api/groups/{id}/expenses` | GET | Svi troškovi jedne grupe (ugnježdena ruta) |
+| `/api/groups/{id}/members` | POST | Dodavanje člana u grupu (`{ "user_id": 1 }`) |
+
+## Troškovi
+
+| Ruta | Metoda | Opis |
+| --- | --- | --- |
+| `/api/expenses` | GET | Lista troškova (paginacija po 5, filter `?min_amount=`, `?max_amount=`) |
+| `/api/expenses` | POST | Kreiranje troška (ulogovani korisnik postaje platilac) |
+| `/api/expenses/{id}` | GET | Detalji troška |
+| `/api/expenses/{id}` | PUT/PATCH | Izmena troška |
+| `/api/expenses/{id}` | DELETE | Brisanje troška |
+
+## Spoljni servis
+
+| Ruta | Metoda | Opis |
+| --- | --- | --- |
+| `/api/exchange-rate/{currency}` | GET | Trenutni kurs EUR → zadata valuta, preko [frankfurter.app](https://frankfurter.app) |
+
+## Korisničke uloge
+
+Tri uloge, sa različitim ovlašćenjima:
+
+* **`user`** — može da kreira grupe/troškove, briše samo svoje grupe
+* **`authenticated_user`** — ulogovan, ali bez prava brisanja grupa
+* **`admin`** — puna kontrola, briše bilo koju grupu
 
 ## Struktura projekta
 
@@ -136,10 +174,17 @@ expense-sharing-app/
 │
 ├── app/
 │   ├── Http/
-│   │   └── Controllers/
-│   │       └── AuthController.php
+│   │   ├── Controllers/
+│   │   │   ├── AuthController.php
+│   │   │   ├── GroupController.php
+│   │   │   └── ExpenseController.php
+│   │   └── Resources/
+│   │       ├── GroupResource.php
+│   │       └── ExpenseResource.php
 │   └── Models/
-│       └── User.php
+│       ├── User.php
+│       ├── Group.php
+│       └── Expense.php
 │
 ├── database/
 │   ├── migrations/
@@ -161,18 +206,4 @@ expense-sharing-app/
 * `vendor/` se ne čuva u GitHub repozitorijumu. Nakon preuzimanja projekta kreira se pomoću `composer install`.
 * `.env` se ne čuva u GitHub repozitorijumu i svaki član tima ga kreira lokalno na osnovu `.env.example`.
 * `composer.json` i `composer.lock` su deo repozitorijuma.
-* Aplikacija se trenutno testira preko Thunder Client-a i nema frontend deo.
-
-
-
-## Pokretanje projekta
-
-1. Instalirati zavisnosti: `composer install`
-2. Podesiti `.env` fajl (kopirati iz `.env.example` i uneti podatke za bazu)
-3. Pokrenuti migracije: `php artisan migrate`
-4. Pokrenuti server: `php artisan serve`
-5. Aplikacija je dostupna na `http://127.0.0.1:8000`
-
-## Testiranje API-ja
-
-Sve rute se testiraju kroz Postman. Rute za grupe i troškove zahtevaju autentifikaciju (Bearer token dobijen kroz `/api/login`).
+* Aplikacija nema frontend deo, testira se isključivo preko Postman-a.
