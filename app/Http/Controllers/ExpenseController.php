@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Expense;
+use App\Http\Resources\ExpenseResource;
 use Illuminate\Support\Facades\Http;
 
 class ExpenseController extends Controller
@@ -11,10 +12,20 @@ class ExpenseController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        return response()->json(Expense::with('group', 'payer')->get());
+   public function index(Request $request)
+{
+    $query = Expense::with('group', 'payer');
+
+    if ($request->has('min_amount')) {
+        $query->where('amount', '>=', $request->input('min_amount'));
     }
+
+    if ($request->has('max_amount')) {
+        $query->where('amount', '<=', $request->input('max_amount'));
+    }
+
+    return ExpenseResource::collection($query->paginate(5));
+}
 
     /**
      * Store a newly created resource in storage.
@@ -41,15 +52,15 @@ return response()->json($expense, 201);
      * Display the specified resource.
      */
     public function show(string $id)
-    {
-        $expense = Expense::with('group', 'payer')->find($id);
+{
+    $expense = Expense::with('group', 'payer')->find($id);
 
-if (!$expense) {
-    return response()->json(['message' => 'Trošak nije pronađen'], 404);
-}
-
-return response()->json($expense);
+    if (!$expense) {
+        return response()->json(['message' => 'Trošak nije pronađen'], 404);
     }
+
+    return new ExpenseResource($expense);
+}
 
     /**
      * Update the specified resource in storage.
