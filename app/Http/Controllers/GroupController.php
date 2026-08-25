@@ -4,16 +4,23 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Group;
+use App\Http\Resources\GroupResource;
 
 class GroupController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        return response()->json(Group::with('creator', 'members')->get());
+   public function index(Request $request)
+{
+    $query = Group::with('creator', 'members');
+
+    if ($request->has('name')) {
+        $query->where('name', 'like', '%' . $request->input('name') . '%');
     }
+
+    return GroupResource::collection($query->paginate(5));
+}
 
     /**
      * Store a newly created resource in storage.
@@ -44,7 +51,7 @@ $group = Group::with('creator', 'members', 'expenses')->find($id);
         return response()->json(['message' => 'Grupa nije pronađena'], 404);
     }
 
-    return response()->json($group);
+   return response()->json($group);
     }
 
     /**
