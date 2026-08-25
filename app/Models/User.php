@@ -40,4 +40,13 @@ class User extends Authenticatable
             'password' => 'hashed', // Laravel AUTOMATSKI hash-uje ovo polje kad se postavi!
         ];
     }
+        public function groups()
+    {
+        return $this->belongsToMany(Group::class, 'group_user');
+    }
+
+    public function expensesPaid()
+    {
+        return $this->hasMany(Expense::class, 'paid_by');
+    }
 }
