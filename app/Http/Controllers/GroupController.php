@@ -77,12 +77,22 @@ $group = Group::with('creator', 'members', 'expenses')->find($id);
     /**
      * Remove the specified resource from storage.
      */
-   public function destroy(string $id)
+public function destroy(Request $request, string $id)
 {
     $group = Group::find($id);
 
     if (!$group) {
         return response()->json(['message' => 'Grupa nije pronađena'], 404);
+    }
+
+    $user = $request->user();
+
+    if ($user->role === 'authenticated_user') {
+        return response()->json(['message' => 'Nemate dozvolu za brisanje grupa'], 403);
+    }
+
+    if ($user->role !== 'admin' && $group->created_by !== $user->id) {
+        return response()->json(['message' => 'Možete brisati samo svoje grupe'], 403);
     }
 
     $group->delete();
