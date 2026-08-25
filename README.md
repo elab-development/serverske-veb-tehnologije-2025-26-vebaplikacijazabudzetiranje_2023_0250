@@ -162,3 +162,17 @@ expense-sharing-app/
 * `.env` se ne čuva u GitHub repozitorijumu i svaki član tima ga kreira lokalno na osnovu `.env.example`.
 * `composer.json` i `composer.lock` su deo repozitorijuma.
 * Aplikacija se trenutno testira preko Thunder Client-a i nema frontend deo.
+
+
+
+## Pokretanje projekta
+
+1. Instalirati zavisnosti: `composer install`
+2. Podesiti `.env` fajl (kopirati iz `.env.example` i uneti podatke za bazu)
+3. Pokrenuti migracije: `php artisan migrate`
+4. Pokrenuti server: `php artisan serve`
+5. Aplikacija je dostupna na `http://127.0.0.1:8000`
+
+## Testiranje API-ja
+
+Sve rute se testiraju kroz Postman. Rute za grupe i troškove zahtevaju autentifikaciju (Bearer token dobijen kroz `/api/login`).
