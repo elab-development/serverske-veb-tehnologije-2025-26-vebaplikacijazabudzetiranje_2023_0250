@@ -116,6 +116,60 @@ http://127.0.0.1:8000.
 
 Sve rute se testiraju kroz **Postman**. Rute za grupe i troškove zahtevaju autentifikaciju (`Authorization: Bearer <token>` dobijen kroz `/api/login`).
 
+### Koraci za testiranje kroz Postman
+
+U Postman-u, za svaku zaštićenu rutu, u tabu **Authorization** izabrati tip **Bearer Token** i nalepiti token (bez reči "Bearer" ispred, Postman je sam dodaje).
+
+**1. Registracija**
+- `POST http://127.0.0.1:8000/api/register`
+- Body → raw → JSON: `{ "name": "Ime Prezime", "email": "test@example.com", "password": "lozinka123" }`
+- Token: ne treba
+
+**2. Login**
+- `POST http://127.0.0.1:8000/api/login`
+- Body → raw → JSON: `{ "email": "test@example.com", "password": "lozinka123" }`
+- Token: ne treba
+- Iz odgovora kopirati vrednost polja `"token"` — koristi se u svim narednim koracima
+
+**3. Kreiranje grupe**
+- `POST http://127.0.0.1:8000/api/groups`
+- Body: `{ "name": "Moja test grupa" }`
+- Token: ✅ obavezan
+- Ulogovani korisnik automatski postaje i kreator i član grupe. Zapamtiti `"id"` grupe iz odgovora.
+
+**4. Dodavanje člana u grupu** (opciono, ako testiraš sa više korisnika)
+- `POST http://127.0.0.1:8000/api/groups/{id}/members`
+- Body: `{ "user_id": 2 }`
+- Token: ✅ obavezan
+
+**5. Kreiranje troška**
+- `POST http://127.0.0.1:8000/api/expenses`
+- Body: `{ "description": "Racun za struju", "amount": 150, "group_id": 1 }` (zameniti `group_id` sa ID-jem iz koraka 3)
+- Token: ✅ obavezan
+
+**6. Lista grupa / troškova (paginacija i filter)**
+- `GET http://127.0.0.1:8000/api/groups?name=test`
+- `GET http://127.0.0.1:8000/api/expenses?min_amount=50&max_amount=500`
+- Token: ✅ obavezan
+
+**7. Balans po grupi**
+- `GET http://127.0.0.1:8000/api/groups/{id}/balance-summary` (zameniti `{id}` ID-jem grupe)
+- Token: ✅ obavezan
+- Vraća, za svakog člana grupe, ukupan iznos koji je platio i broj troškova, sortirano od najvišeg ka najnižem
+
+**8. Kurs valute (spoljni servis)**
+- `GET http://127.0.0.1:8000/api/exchange-rate/USD`
+- Token: ✅ obavezan
+
+**9. Brisanje grupe (provera uloga)**
+- `DELETE http://127.0.0.1:8000/api/groups/{id}`
+- Token: ✅ obavezan
+- `user` može obrisati samo svoju grupu, `authenticated_user` ne može nijednu, `admin` može svaku — testirati sa različitim ulogama za razliku u odgovoru (200 vs 403)
+
+**10. Logout**
+- `POST http://127.0.0.1:8000/api/logout`
+- Token: ✅ obavezan (nakon logout-a isti token više ne radi — sledeći zahtev s njim vraća `401`)
+
 ## Modeli i relacije
 
 * **User** — `hasMany` Expense (kao platilac), `belongsToMany` Group (preko `group_user`)
@@ -142,6 +196,7 @@ Sve rute zahtevaju autentifikaciju (`auth:sanctum`).
 | `/api/groups/{id}` | DELETE | Brisanje grupe — **ograničeno po ulozi**: `admin` briše svaku, `user` samo svoju, `authenticated_user` ne sme nijednu |
 | `/api/groups/{id}/expenses` | GET | Svi troškovi jedne grupe (ugnježdena ruta) |
 | `/api/groups/{id}/members` | POST | Dodavanje člana u grupu (`{ "user_id": 1 }`) |
+| `/api/groups/{id}/balance-summary` | GET | Ukupan iznos koji je svaki član grupe platio, sortirano opadajuće (JOIN + agregacija) |
 
 ## Troškovi
 
