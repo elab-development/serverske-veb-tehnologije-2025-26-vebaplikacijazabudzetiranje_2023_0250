@@ -10,10 +10,16 @@ class GroupController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        return response()->json(Group::with('creator', 'members')->get());
+  public function index(Request $request)
+{
+    $query = Group::with('creator', 'members');
+
+    if ($request->has('name')) {
+        $query->where('name', 'like', '%' . $request->input('name') . '%');
     }
+
+    return response()->json($query->paginate(5));
+}
 
     /**
      * Store a newly created resource in storage.

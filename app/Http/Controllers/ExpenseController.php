@@ -11,10 +11,20 @@ class ExpenseController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        return response()->json(Expense::with('group', 'payer')->get());
+   public function index(Request $request)
+{
+    $query = Expense::with('group', 'payer');
+
+    if ($request->has('min_amount')) {
+        $query->where('amount', '>=', $request->input('min_amount'));
     }
+
+    if ($request->has('max_amount')) {
+        $query->where('amount', '<=', $request->input('max_amount'));
+    }
+
+    return response()->json($query->paginate(5));
+}
 
     /**
      * Store a newly created resource in storage.
