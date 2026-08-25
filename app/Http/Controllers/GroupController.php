@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Group;
 use App\Http\Resources\GroupResource;
 
@@ -36,6 +37,10 @@ class GroupController extends Controller
         'name' => $validated['name'],
         'created_by' => $request->user()->id,
     ]);
+
+    //automatski dodajemo kreatora grupe kao njenog prvog zvaničnog člana
+    // (bez ovoga, group_user tabela ostaje prazna dok neko ručno ne pozove addMember)
+    $group->members()->attach($request->user()->id);
 
     return response()->json($group, 201);
 }
@@ -125,5 +130,41 @@ public function addMember(Request $request, string $id)
     $group->members()->attach($validated['user_id']);
 
     return response()->json(['message' => 'Korisnik je uspešno dodat u grupu']);
+
+    }
+
+    //Vraća ukupan iznos koji je svaki član grupe platio za troškove, sortirano od najvišeg ka najnižem.
+    // JOIN preko 3 tabele (expenses, users, group_user), agregacija (SUM), grupisanje (GROUP BY).
+
+public function balanceSummary($id)
+{
+    // Proveravamo da grupa postoji
+    $group = Group::findOrFail($id);
+
+    $summary = DB::table('expenses')
+        // JOIN sa users - da dobijemo ime osobe koja je platila
+        ->join('users', 'expenses.paid_by', '=', 'users.id')
+        // JOIN sa group_user - da potvrdimo da je ta osoba stvarno član grupe
+        ->join('group_user', function ($joinClause) {
+            $joinClause->on('group_user.user_id', '=', 'users.id')
+                       ->on('group_user.group_id', '=', 'expenses.group_id');
+        })
+        ->where('expenses.group_id', $id)
+        ->select(
+            'users.id as user_id',
+            'users.name',
+            DB::raw('SUM(expenses.amount) as total_paid'),
+            DB::raw('COUNT(expenses.id) as broj_troskova')
+        )
+        ->groupBy('users.id', 'users.name')
+        ->orderByDesc('total_paid')
+        ->get();
+
+    return response()->json([
+        'group' => $group->name,
+        'balance_summary' => $summary,
+    ], 200);
+    }
+
 }
-}
+
