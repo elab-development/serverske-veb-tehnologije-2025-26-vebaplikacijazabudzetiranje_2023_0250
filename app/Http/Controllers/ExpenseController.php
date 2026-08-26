@@ -135,6 +135,30 @@ return response()->json(['message' => 'Trošak je uspešno obrisan']);
 
     return response()->json($data);
 }
+
+ // Drugi javni REST servis - restcountries.com (podaci o drzavi: valuta, glavni grad, region)
+    public function countryInfo(string $name)
+{
+    $cacheKey = 'country-info-' . strtolower($name);
+
+    $data = Cache::remember($cacheKey, now()->addHours(24), function () use ($name) {
+        $response = Http::withOptions(['verify' => false])->get("https://restcountries.com/v3.1/name/{$name}", [
+            'fields' => 'name,currencies,capital,region',
+        ]);
+
+        if (!$response->successful()) {
+            return null;
+        }
+
+        return $response->json();
+    });
+
+    if ($data === null) {
+        return response()->json(['message' => 'Greška prilikom pribavljanja podataka o drzavi'], 500);
+    }
+
+    return response()->json($data);
+}
 }
 
 

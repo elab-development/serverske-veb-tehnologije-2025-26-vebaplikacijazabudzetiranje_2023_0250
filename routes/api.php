@@ -20,4 +20,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/groups/{id}/balance-summary', [GroupController::class, 'balanceSummary']);
     Route::get('/groups/{id}/export-csv', [GroupController::class, 'exportExpensesCsv']);
     Route::get('/exchange-rate/{currency}', [ExpenseController::class, 'exchangeRate']);
+    Route::get('/country-info/{name}', [ExpenseController::class, 'countryInfo']);
 });
