@@ -93,7 +93,7 @@ return response()->json($expense);
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
         $expense = Expense::find($id);
 
@@ -136,15 +136,15 @@ return response()->json(['message' => 'Trošak je uspešno obrisan']);
     return response()->json($data);
 }
 
- // Drugi javni REST servis - restcountries.com (podaci o drzavi: valuta, glavni grad, region)
-    public function countryInfo(string $name)
+ // Drugi javni REST servis - date.nager.at (drzavni praznici po drzavi, npr. korisno za planiranje grupnog izleta)
+    public function publicHolidays(string $countryCode)
 {
-    $cacheKey = 'country-info-' . strtolower($name);
+    $countryCode = strtoupper($countryCode);
+    $year = now()->year;
+    $cacheKey = 'public-holidays-' . $countryCode . '-' . $year;
 
-    $data = Cache::remember($cacheKey, now()->addHours(24), function () use ($name) {
-        $response = Http::withOptions(['verify' => false])->get("https://restcountries.com/v3.1/name/{$name}", [
-            'fields' => 'name,currencies,capital,region',
-        ]);
+    $data = Cache::remember($cacheKey, now()->addHours(24), function () use ($countryCode, $year) {
+        $response = Http::withOptions(['verify' => false])->get("https://date.nager.at/api/v3/publicholidays/{$year}/{$countryCode}");
 
         if (!$response->successful()) {
             return null;
@@ -154,7 +154,7 @@ return response()->json(['message' => 'Trošak je uspešno obrisan']);
     });
 
     if ($data === null) {
-        return response()->json(['message' => 'Greška prilikom pribavljanja podataka o drzavi'], 500);
+        return response()->json(['message' => 'Greška prilikom pribavljanja praznika (proveri da li je kod drzave ispravan, npr. RS, US, DE)'], 500);
     }
 
     return response()->json($data);
