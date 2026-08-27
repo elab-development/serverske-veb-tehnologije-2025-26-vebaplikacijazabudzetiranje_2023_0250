@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Expense;
 use App\Http\Resources\ExpenseResource;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 
 class ExpenseController extends Controller
 {
@@ -73,6 +74,12 @@ if (!$expense) {
     return response()->json(['message' => 'Trošak nije pronađen'], 404);
 }
 
+// Provera vlasništva (IDOR fix)
+$user = $request->user();
+if ($user->role !== 'admin' && $expense->paid_by !== $user->id) {
+    return response()->json(['message' => 'Možete menjati samo svoje troškove'], 403);
+}
+
 $validated = $request->validate([
     'description' => 'sometimes|required|string|max:255',
     'amount' => 'sometimes|required|numeric|min:0',
@@ -86,12 +93,18 @@ return response()->json($expense);
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
         $expense = Expense::find($id);
 
 if (!$expense) {
     return response()->json(['message' => 'Trošak nije pronađen'], 404);
+}
+
+// Provera vlasništva (IDOR fix)
+$user = $request->user();
+if ($user->role !== 'admin' && $expense->paid_by !== $user->id) {
+    return response()->json(['message' => 'Možete brisati samo svoje troškove'], 403);
 }
 
 $expense->delete();
@@ -100,16 +113,51 @@ return response()->json(['message' => 'Trošak je uspešno obrisan']);
     }
     public function exchangeRate(string $currency)
 {
-        $response = Http::withOptions(['verify' => false])->get("https://api.frankfurter.app/latest", [
-        'from' => 'EUR',
-        'to' => strtoupper($currency),
-    ]);
+    $currency = strtoupper($currency);
 
-    if (!$response->successful()) {
+    // Kesiramo kurs na 60 minuta - ne dovlacimo isti podatak sa spoljnog servisa svaki put
+    $data = Cache::remember("exchange-rate-{$currency}", now()->addMinutes(60), function () use ($currency) {
+        $response = Http::withOptions(['verify' => false])->get("https://api.frankfurter.app/latest", [
+            'from' => 'EUR',
+            'to' => $currency,
+        ]);
+
+        if (!$response->successful()) {
+            return null;
+        }
+
+        return $response->json();
+    });
+
+    if ($data === null) {
         return response()->json(['message' => 'Greška prilikom pribavljanja kursa'], 500);
     }
 
-    return response()->json($response->json());
+    return response()->json($data);
+}
+
+ // Drugi javni REST servis - date.nager.at (drzavni praznici po drzavi, npr. korisno za planiranje grupnog izleta)
+    public function publicHolidays(string $countryCode)
+{
+    $countryCode = strtoupper($countryCode);
+    $year = now()->year;
+    $cacheKey = 'public-holidays-' . $countryCode . '-' . $year;
+
+    $data = Cache::remember($cacheKey, now()->addHours(24), function () use ($countryCode, $year) {
+        $response = Http::withOptions(['verify' => false])->get("https://date.nager.at/api/v3/publicholidays/{$year}/{$countryCode}");
+
+        if (!$response->successful()) {
+            return null;
+        }
+
+        return $response->json();
+    });
+
+    if ($data === null) {
+        return response()->json(['message' => 'Greška prilikom pribavljanja praznika (proveri da li je kod drzave ispravan, npr. RS, US, DE)'], 500);
+    }
+
+    return response()->json($data);
 }
 }
 

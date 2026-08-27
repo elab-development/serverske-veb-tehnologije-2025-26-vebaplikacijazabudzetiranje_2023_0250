@@ -166,5 +166,46 @@ public function balanceSummary($id)
     ], 200);
     }
 
+    // Export troskova grupe u CSV fajl
+    public function exportExpensesCsv($id)
+    {
+        $group = Group::find($id);
+
+        if (!$group) {
+            return response()->json(['message' => 'Grupa nije pronađena'], 404);
+        }
+
+        $expenses = $group->expenses()->with('payer')->get();
+
+        $fileName = 'troskovi-grupe-' . $group->id . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
+        ];
+
+        $callback = function () use ($expenses) {
+            $handle = fopen('php://output', 'w');
+
+            // BOM da bi Excel ispravno prikazao dijakritike (c, c, s...)
+            fwrite($handle, "\xEF\xBB\xBF");
+
+            fputcsv($handle, ['Opis', 'Iznos', 'Platio', 'Datum']);
+
+            foreach ($expenses as $expense) {
+                fputcsv($handle, [
+                    $expense->description,
+                    $expense->amount,
+                    $expense->payer->name ?? 'Nepoznato',
+                    $expense->created_at->format('d.m.Y H:i'),
+                ]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
 }
 
