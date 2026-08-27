@@ -14,7 +14,7 @@ Projekat je razvijen u **Laravel-u**.
 * Eloquent ORM (Laravel migracije, factory-ji, seederi)
 * Laravel Sanctum (autentifikacija preko API tokena)
 * Composer
-* REST API (uključujući poziv spoljnog javnog servisa — [frankfurter.app](https://frankfurter.app) za kursnu listu)
+* REST API (uključujući pozive dva spoljna javna servisa — [frankfurter.app](https://frankfurter.app) za kursnu listu i [date.nager.at](https://date.nager.at) za državne praznike)
 
 ## Preuzimanje projekta
 
@@ -197,6 +197,7 @@ Sve rute zahtevaju autentifikaciju (`auth:sanctum`).
 | `/api/groups/{id}/expenses` | GET | Svi troškovi jedne grupe (ugnježdena ruta) |
 | `/api/groups/{id}/members` | POST | Dodavanje člana u grupu (`{ "user_id": 1 }`) |
 | `/api/groups/{id}/balance-summary` | GET | Ukupan iznos koji je svaki član grupe platio, sortirano opadajuće (JOIN + agregacija) |
+| `/api/groups/{id}/export-csv` | GET | Export svih troškova grupe u CSV fajl |
 
 ## Troškovi
 
@@ -205,14 +206,17 @@ Sve rute zahtevaju autentifikaciju (`auth:sanctum`).
 | `/api/expenses` | GET | Lista troškova (paginacija po 5, filter `?min_amount=`, `?max_amount=`) |
 | `/api/expenses` | POST | Kreiranje troška (ulogovani korisnik postaje platilac) |
 | `/api/expenses/{id}` | GET | Detalji troška |
-| `/api/expenses/{id}` | PUT/PATCH | Izmena troška |
-| `/api/expenses/{id}` | DELETE | Brisanje troška |
+| `/api/expenses/{id}` | PUT/PATCH | Izmena troška — **ograničeno po vlasništvu**: `admin` menja svaki, ostali samo trošak koji su sami platili |
+| `/api/expenses/{id}` | DELETE | Brisanje troška — **ograničeno po vlasništvu**: `admin` briše svaki, ostali samo trošak koji su sami platili |
 
-## Spoljni servis
+## Spoljni servisi
+
+Oba spoljna poziva su keširana (`Cache::remember`) da se ne pozivaju ponovo pri svakom zahtevu — kursna lista na 60 minuta, praznici na 24h.
 
 | Ruta | Metoda | Opis |
 | --- | --- | --- |
 | `/api/exchange-rate/{currency}` | GET | Trenutni kurs EUR → zadata valuta, preko [frankfurter.app](https://frankfurter.app) |
+| `/api/public-holidays/{countryCode}` | GET | Državni praznici za tekuću godinu, preko [date.nager.at](https://date.nager.at) (kod drzave, npr. `RS`, `US`, `DE`) |
 
 ## Korisničke uloge
 
@@ -221,6 +225,8 @@ Tri uloge, sa različitim ovlašćenjima:
 * **`user`** — može da kreira grupe/troškove, briše samo svoje grupe
 * **`authenticated_user`** — ulogovan, ali bez prava brisanja grupa
 * **`admin`** — puna kontrola, briše bilo koju grupu
+
+Isto pravilo (vlasništvo, admin sme sve) važi i za izmenu/brisanje troškova — vidi tabelu Troškovi.
 
 ## Struktura projekta
 
