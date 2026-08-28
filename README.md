@@ -94,7 +94,7 @@ ili oboje odjednom (briše i ponovo pravi sve tabele):
 php artisan migrate:fresh --seed
 ```
 
-Seeder pravi i 3 fiksna naloga, po jedan za svaku ulogu (lozinka za sve: `password`) — korisno za testiranje razlika u ovlašćenjima:
+Seeder pravi i 3 fiksna naloga, po jedan za svaku ulogu (lozinka za sve: `password`, **samo za lokalni razvoj/testiranje — ne koristiti u produkciji i promeniti lozinke po potrebi**) — korisno za testiranje razlika u ovlašćenjima:
 
 | Email | Rola |
 | --- | --- |
