@@ -14,7 +14,8 @@ Projekat je razvijen u **Laravel-u**.
 * Eloquent ORM (Laravel migracije, factory-ji, seederi)
 * Laravel Sanctum (autentifikacija preko API tokena)
 * Composer
-* REST API (uključujući poziv spoljnog javnog servisa — [frankfurter.app](https://frankfurter.app) za kursnu listu)
+* REST API (uključujući poziv spoljnih javnih servisa — [frankfurter.app](https://frankfurter.app) za kursnu listu i [date.nager.at](https://date.nager.at) za državne praznike)
+* Keširanje odgovora spoljnih servisa (Laravel `Cache`)
 
 ## Preuzimanje projekta
 
@@ -81,7 +82,7 @@ Nakon toga primeniti migracije kako bi se napravile tabele u bazi:
 php artisan migrate
 ```
 
-Opciono, napuniti bazu test podacima (10 grupa, 20 troškova sa nasumičnim podacima):
+Opciono, napuniti bazu test podacima (10 korisnika — od čega 3 sa fiksnim nalozima po ulozi radi lakšeg testiranja, 10 grupa, 20 troškova sa nasumičnim podacima):
 
 ```bash
 php artisan db:seed
@@ -92,6 +93,14 @@ ili oboje odjednom (briše i ponovo pravi sve tabele):
 ```bash
 php artisan migrate:fresh --seed
 ```
+
+Seeder pravi i 3 fiksna naloga, po jedan za svaku ulogu (lozinka za sve: `password`) — korisno za testiranje razlika u ovlašćenjima:
+
+| Email | Rola |
+| --- | --- |
+| `admin@example.com` | `admin` |
+| `authenticated@example.com` | `authenticated_user` |
+| `user@example.com` | `user` |
 
 ### Tabele u bazi
 
@@ -157,16 +166,32 @@ U Postman-u, za svaku zaštićenu rutu, u tabu **Authorization** izabrati tip **
 - Token: ✅ obavezan
 - Vraća, za svakog člana grupe, ukupan iznos koji je platio i broj troškova, sortirano od najvišeg ka najnižem
 
-**8. Kurs valute (spoljni servis)**
+**8. Kurs valute (spoljni servis, keširano)**
 - `GET http://127.0.0.1:8000/api/exchange-rate/USD`
 - Token: ✅ obavezan
+- Prvi poziv ide na frankfurter.app, svaki naredni u narednih 60 min vraća se iz keša (brži odgovor, isti podatak)
 
-**9. Brisanje grupe (provera uloga)**
+**9. Državni praznici (drugi spoljni servis, keširano)**
+- `GET http://127.0.0.1:8000/api/public-holidays/RS`
+- Token: ✅ obavezan
+- Poziva date.nager.at, keširano 24h; kod države mora biti ISO format (npr. `RS`, `US`, `DE`)
+
+**10. Export troškova grupe u CSV**
+- `GET http://127.0.0.1:8000/api/groups/{id}/export-csv`
+- Token: ✅ obavezan
+- Vraća CSV fajl za preuzimanje sa svim troškovima grupe (opis, iznos, ko je platio, datum)
+
+**11. Brisanje grupe (provera uloga)**
 - `DELETE http://127.0.0.1:8000/api/groups/{id}`
 - Token: ✅ obavezan
-- `user` može obrisati samo svoju grupu, `authenticated_user` ne može nijednu, `admin` može svaku — testirati sa različitim ulogama za razliku u odgovoru (200 vs 403)
+- `user` može obrisati samo svoju grupu, `authenticated_user` ne može nijednu, `admin` može svaku — testirati prijavom preko fiksnih seed naloga (vidi tabelu u sekciji Baza podataka) za razliku u odgovoru (200 vs 403)
 
-**10. Logout**
+**12. Izmena/brisanje tuđeg troška (provera vlasništva — IDOR zaštita)**
+- `PUT` ili `DELETE http://127.0.0.1:8000/api/expenses/{id}`
+- Token: ✅ obavezan
+- Ako trošak nije kreirao ulogovani korisnik (i korisnik nije `admin`), vraća `403` — testirati prijavom kao drugi korisnik na tuđ trošak
+
+**13. Logout**
 - `POST http://127.0.0.1:8000/api/logout`
 - Token: ✅ obavezan (nakon logout-a isti token više ne radi — sledeći zahtev s njim vraća `401`)
 
@@ -197,6 +222,7 @@ Sve rute zahtevaju autentifikaciju (`auth:sanctum`).
 | `/api/groups/{id}/expenses` | GET | Svi troškovi jedne grupe (ugnježdena ruta) |
 | `/api/groups/{id}/members` | POST | Dodavanje člana u grupu (`{ "user_id": 1 }`) |
 | `/api/groups/{id}/balance-summary` | GET | Ukupan iznos koji je svaki član grupe platio, sortirano opadajuće (JOIN + agregacija) |
+| `/api/groups/{id}/export-csv` | GET | Export svih troškova grupe u CSV fajl za preuzimanje |
 
 ## Troškovi
 
@@ -205,22 +231,25 @@ Sve rute zahtevaju autentifikaciju (`auth:sanctum`).
 | `/api/expenses` | GET | Lista troškova (paginacija po 5, filter `?min_amount=`, `?max_amount=`) |
 | `/api/expenses` | POST | Kreiranje troška (ulogovani korisnik postaje platilac) |
 | `/api/expenses/{id}` | GET | Detalji troška |
-| `/api/expenses/{id}` | PUT/PATCH | Izmena troška |
-| `/api/expenses/{id}` | DELETE | Brisanje troška |
+| `/api/expenses/{id}` | PUT/PATCH | Izmena troška — **samo vlasnik troška ili admin** (IDOR zaštita) |
+| `/api/expenses/{id}` | DELETE | Brisanje troška — **samo vlasnik troška ili admin** (IDOR zaštita) |
 
-## Spoljni servis
+## Spoljni servisi
+
+Odgovori oba servisa se keširaju (`Cache::remember`) da se ne poziva spoljni API pri svakom zahtevu.
 
 | Ruta | Metoda | Opis |
 | --- | --- | --- |
-| `/api/exchange-rate/{currency}` | GET | Trenutni kurs EUR → zadata valuta, preko [frankfurter.app](https://frankfurter.app) |
+| `/api/exchange-rate/{currency}` | GET | Trenutni kurs EUR → zadata valuta, preko [frankfurter.app](https://frankfurter.app) (keš 60 min) |
+| `/api/public-holidays/{countryCode}` | GET | Državni praznici za tekuću godinu, preko [date.nager.at](https://date.nager.at) (keš 24h) |
 
 ## Korisničke uloge
 
-Tri uloge, sa različitim ovlašćenjima:
+Tri uloge, sa različitim ovlašćenjima (seeder pravi fiksan nalog za svaku — vidi sekciju Baza podataka):
 
-* **`user`** — može da kreira grupe/troškove, briše samo svoje grupe
+* **`user`** — može da kreira grupe/troškove, briše/menja samo svoje grupe i troškove
 * **`authenticated_user`** — ulogovan, ali bez prava brisanja grupa
-* **`admin`** — puna kontrola, briše bilo koju grupu
+* **`admin`** — puna kontrola, briše/menja bilo čiju grupu ili trošak
 
 ## Struktura projekta
 
@@ -245,6 +274,9 @@ expense-sharing-app/
 │   ├── migrations/
 │   ├── factories/
 │   └── seeders/
+│       ├── UserSeeder.php
+│       ├── GroupSeeder.php
+│       └── ExpenseSeeder.php
 │
 ├── routes/
 │   └── api.php
