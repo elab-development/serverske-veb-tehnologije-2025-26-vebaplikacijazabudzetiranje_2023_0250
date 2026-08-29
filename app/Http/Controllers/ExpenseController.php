@@ -38,6 +38,8 @@ class ExpenseController extends Controller
     'category' => 'required|string|max:100',
     'amount' => 'required|numeric|min:0',
     'group_id' => 'required|exists:groups,id',
+    // datum kada je trosak stvarno placen; ako se ne posalje, uzima se danasnji datum
+    'paid_at' => 'nullable|date',
 ]);
 
 $expense = Expense::create([
@@ -46,6 +48,7 @@ $expense = Expense::create([
     'amount' => $validated['amount'],
     'group_id' => $validated['group_id'],
     'paid_by' => $request->user()->id,
+    'paid_at' => $validated['paid_at'] ?? now()->toDateString(),
 ]);
 
 return response()->json($expense, 201);
@@ -86,6 +89,7 @@ $validated = $request->validate([
     'description' => 'sometimes|required|string|max:255',
     'category' => 'sometimes|required|string|max:100',
     'amount' => 'sometimes|required|numeric|min:0',
+    'paid_at' => 'sometimes|required|date',
 ]);
 
 $expense->update($validated);
