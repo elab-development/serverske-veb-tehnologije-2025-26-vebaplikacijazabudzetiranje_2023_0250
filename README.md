@@ -2,7 +2,7 @@
 
 Veb aplikacija za deljenje i praćenje troškova, razvijena u okviru predmeta **Serverske veb tehnologije 2025/26**.
 
-Aplikacija omogućava korisnicima da registruju nalog, prijave se, prave grupe, dodaju članove u grupe, kreiraju i dele troškove unutar grupe, i prate ko je koliko platio.
+Aplikacija omogućava korisnicima da registruju nalog, prijave se, prave grupe, dodaju članove u grupe, kreiraju i dele troškove unutar grupe (sa kategorijom i datumom plaćanja), prate ko je koliko platio i **ko kome duguje** (ravnomerna podela, kao Splitwise), izvezu troškove u CSV i pošalju mejl obaveštenje članovima koji duguju.
 
 Projekat je razvijen u **Laravel-u**.
 
@@ -16,7 +16,7 @@ Projekat je razvijen u **Laravel-u**.
 * Composer
 * REST API (uključujući poziv spoljnih javnih servisa — [frankfurter.app](https://frankfurter.app) za kursnu listu i [date.nager.at](https://date.nager.at) za državne praznike)
 * Keširanje odgovora spoljnih servisa (Laravel `Cache`)
-* Laravel Mail (obaveštenje mejlom kad neko duguje novac u grupi)
+* Laravel Mail + Mailtrap SMTP (obaveštenje mejlom kad neko duguje novac u grupi)
 
 ## Preuzimanje projekta
 
@@ -73,21 +73,23 @@ Vrednosti `DB_USERNAME`, `DB_PASSWORD` i ostalih parametara potrebno je prilagod
 Aplikacija šalje mejl obaveštenje članovima grupe koji duguju novac (ruta `/api/groups/{id}/notify-debts`). Za slanje se koristi **Mailtrap sandbox** — besplatan servis kod koga mejlovi završavaju u veb inboxu na Mailtrap sajtu, a ne kod pravih ljudi.
 
 1. Napraviti besplatan nalog na [mailtrap.io](https://mailtrap.io).
-2. **Email Testing → My Inbox → Integrations → Laravel 9+** — otvara se blok sa `MAIL_USERNAME` i `MAIL_PASSWORD`.
-3. Te dve vrednosti upisati u `.env` (ostala `MAIL_*` polja su već podešena u `.env.example`):
+2. U levom meniju **Sandboxes** → otvoriti projekat → otvoriti inbox → tab **SMTP Settings**. Tu su `Host`, `Port`, `Username`, `Password` (dropdown „Integrations → Laravel" prikaže ceo blok odjednom).
+3. `Username` i `Password` upisati u `.env` kao `MAIL_USERNAME` i `MAIL_PASSWORD` (ostala `MAIL_*` polja su već podešena u `.env.example`):
 
 ```env
 MAIL_MAILER=smtp
 MAIL_HOST=sandbox.smtp.mailtrap.io
 MAIL_PORT=2525
-MAIL_USERNAME=<iz Mailtrap-a>
-MAIL_PASSWORD=<iz Mailtrap-a>
+MAIL_USERNAME=<Username iz Mailtrap-a>
+MAIL_PASSWORD=<Password iz Mailtrap-a>
 MAIL_FROM_ADDRESS="noreply@expense-app.test"
 ```
 
 4. `php artisan config:clear`
 
-Poslati mejlovi se vide u Mailtrap inboxu. Za rad bez slanja (samo upis u `storage/logs/laravel.log`) postaviti `MAIL_MAILER=log`.
+Poslati mejlovi se vide u Mailtrap inboxu (tab **Emails**). Za rad bez slanja (samo upis u `storage/logs/laravel.log`) postaviti `MAIL_MAILER=log`.
+
+> Mailtrap besplatni plan šalje ~1 mejl na 10 sekundi. Ako se `notify-debts` pozove češće, deo mejlova bude odbijen i ruta ih vrati u polju `"failed"` (zahtev i dalje uspeva sa `200`).
 
 ## Baza podataka
 
@@ -104,7 +106,7 @@ Nakon toga primeniti migracije kako bi se napravile tabele u bazi:
 php artisan migrate
 ```
 
-Opciono, napuniti bazu test podacima (10 korisnika — od čega 3 sa fiksnim nalozima po ulozi radi lakšeg testiranja, 10 grupa, 20 troškova sa nasumičnim podacima):
+Opciono, napuniti bazu test podacima. Seeder pravi 20 troškova (svaki sa nasumičnom kategorijom i datumom plaćanja); pošto factory-ji za grupe i troškove usput kreiraju i svoje korisnike/grupe, u bazi na kraju bude ~60 korisnika i ~30 grupa. Među korisnicima su i 3 fiksna naloga po ulozi (vidi tabelu ispod):
 
 ```bash
 php artisan db:seed
@@ -201,7 +203,7 @@ U Postman-u, za svaku zaštićenu rutu, u tabu **Authorization** izabrati tip **
 **10. Export troškova grupe u CSV**
 - `GET http://127.0.0.1:8000/api/groups/{id}/export-csv`
 - Token: ✅ obavezan
-- Vraća CSV fajl za preuzimanje sa svim troškovima grupe (opis, iznos, ko je platio, datum)
+- Vraća CSV fajl za preuzimanje sa svim troškovima grupe (kolone: opis, kategorija, iznos, ko je platio, datum plaćanja)
 
 **11. Ko duguje kome u grupi (settlement)**
 - `GET http://127.0.0.1:8000/api/groups/{id}/settlement`
@@ -212,6 +214,8 @@ U Postman-u, za svaku zaštićenu rutu, u tabu **Authorization** izabrati tip **
 - `POST http://127.0.0.1:8000/api/groups/{id}/notify-debts`
 - Token: ✅ obavezan
 - Šalje mejl svakom članu grupe koji trenutno duguje novac, na osnovu iste logike kao settlement. Uz Mailtrap podešavanje (vidi „Podešavanje mejla") mejlovi se vide u Mailtrap inboxu; uz `MAIL_MAILER=log` se upisuju u `storage/logs/laravel.log`
+- Odgovor: `"notified"` (uspešno poslati) i, ako neki mejl ne prođe (npr. Mailtrap rate limit), `"failed"` — pojedinačna greška ne obara ceo zahtev
+- Preduslov: grupa mora imati bar 2 člana i bar jedan trošak da bi neko „dugovao"
 
 **13. Brisanje grupe (provera uloga)**
 - `DELETE http://127.0.0.1:8000/api/groups/{id}`
