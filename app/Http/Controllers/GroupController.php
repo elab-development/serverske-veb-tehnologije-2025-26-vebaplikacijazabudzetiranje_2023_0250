@@ -261,27 +261,44 @@ public function balanceSummary($id)
         }
 
         $notified = [];
+        $failed = [];
 
         foreach ($data['settlement'] as $member) {
             if ($member['balance'] < 0 && !empty($member['email'])) {
-                Mail::to($member['email'])->send(new DebtNotification(
-                    $member['name'],
-                    $group->name,
-                    abs($member['balance'])
-                ));
+                try {
+                    Mail::to($member['email'])->send(new DebtNotification(
+                        $member['name'],
+                        $group->name,
+                        abs($member['balance'])
+                    ));
 
-                $notified[] = [
-                    'name' => $member['name'],
-                    'email' => $member['email'],
-                    'amount' => abs($member['balance']),
-                ];
+                    $notified[] = [
+                        'name' => $member['name'],
+                        'email' => $member['email'],
+                        'amount' => abs($member['balance']),
+                    ];
+                } catch (\Throwable $e) {
+                    // npr. Mailtrap rate limit na besplatnom planu - ne rusimo ceo zahtev
+                    $failed[] = [
+                        'name' => $member['name'],
+                        'email' => $member['email'],
+                        'error' => $e->getMessage(),
+                    ];
+                }
             }
         }
 
-        return response()->json([
+        $response = [
             'message' => 'Mejlovi poslati clanovima koji duguju.',
             'notified' => $notified,
-        ]);
+        ];
+
+        if (!empty($failed)) {
+            $response['message'] = 'Deo mejlova nije poslat (vidi "failed").';
+            $response['failed'] = $failed;
+        }
+
+        return response()->json($response);
     }
 
     // Export troškova grupe u CSV fajl

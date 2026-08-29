@@ -66,15 +66,28 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-Za slanje mejlova (reset lozinke, obaveštenje o dugu) bez prave email konfiguracije, dodati:
+Vrednosti `DB_USERNAME`, `DB_PASSWORD` i ostalih parametara potrebno je prilagoditi lokalnoj MySQL konfiguraciji.
+
+### Podešavanje mejla (Mailtrap)
+
+Aplikacija šalje mejl obaveštenje članovima grupe koji duguju novac (ruta `/api/groups/{id}/notify-debts`). Za slanje se koristi **Mailtrap sandbox** — besplatan servis kod koga mejlovi završavaju u veb inboxu na Mailtrap sajtu, a ne kod pravih ljudi.
+
+1. Napraviti besplatan nalog na [mailtrap.io](https://mailtrap.io).
+2. **Email Testing → My Inbox → Integrations → Laravel 9+** — otvara se blok sa `MAIL_USERNAME` i `MAIL_PASSWORD`.
+3. Te dve vrednosti upisati u `.env` (ostala `MAIL_*` polja su već podešena u `.env.example`):
 
 ```env
-MAIL_MAILER=log
+MAIL_MAILER=smtp
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=<iz Mailtrap-a>
+MAIL_PASSWORD=<iz Mailtrap-a>
+MAIL_FROM_ADDRESS="noreply@expense-app.test"
 ```
 
-Mejlovi se tada ne šalju stvarno, već se upisuju u `storage/logs/laravel.log` — dovoljno za testiranje.
+4. `php artisan config:clear`
 
-Vrednosti `DB_USERNAME`, `DB_PASSWORD` i ostalih parametara potrebno je prilagoditi lokalnoj MySQL konfiguraciji.
+Poslati mejlovi se vide u Mailtrap inboxu. Za rad bez slanja (samo upis u `storage/logs/laravel.log`) postaviti `MAIL_MAILER=log`.
 
 ## Baza podataka
 
@@ -198,7 +211,7 @@ U Postman-u, za svaku zaštićenu rutu, u tabu **Authorization** izabrati tip **
 **12. Obaveštenje mejlom o dugu**
 - `POST http://127.0.0.1:8000/api/groups/{id}/notify-debts`
 - Token: ✅ obavezan
-- Šalje mejl (upisuje u `storage/logs/laravel.log` ako je `MAIL_MAILER=log`) svakom članu grupe koji trenutno duguje novac, na osnovu iste logike kao settlement
+- Šalje mejl svakom članu grupe koji trenutno duguje novac, na osnovu iste logike kao settlement. Uz Mailtrap podešavanje (vidi „Podešavanje mejla") mejlovi se vide u Mailtrap inboxu; uz `MAIL_MAILER=log` se upisuju u `storage/logs/laravel.log`
 
 **13. Brisanje grupe (provera uloga)**
 - `DELETE http://127.0.0.1:8000/api/groups/{id}`
