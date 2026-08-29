@@ -18,6 +18,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/groups/{id}/expenses', [GroupController::class, 'expenses']);
     Route::post('/groups/{id}/members', [GroupController::class, 'addMember']);
     Route::get('/groups/{id}/balance-summary', [GroupController::class, 'balanceSummary']);
+    Route::get('/groups/{id}/settlement', [GroupController::class, 'settlement']);
+    Route::post('/groups/{id}/notify-debts', [GroupController::class, 'notifyDebts']);
     Route::get('/groups/{id}/export-csv', [GroupController::class, 'exportExpensesCsv']);
     Route::get('/exchange-rate/{currency}', [ExpenseController::class, 'exchangeRate']);
     Route::get('/public-holidays/{countryCode}', [ExpenseController::class, 'publicHolidays']);

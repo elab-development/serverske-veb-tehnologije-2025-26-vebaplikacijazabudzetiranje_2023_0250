@@ -16,6 +16,7 @@ Projekat je razvijen u **Laravel-u**.
 * Composer
 * REST API (uključujući poziv spoljnih javnih servisa — [frankfurter.app](https://frankfurter.app) za kursnu listu i [date.nager.at](https://date.nager.at) za državne praznike)
 * Keširanje odgovora spoljnih servisa (Laravel `Cache`)
+* Laravel Mail (obaveštenje mejlom kad neko duguje novac u grupi)
 
 ## Preuzimanje projekta
 
@@ -65,6 +66,14 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
+Za slanje mejlova (reset lozinke, obaveštenje o dugu) bez prave email konfiguracije, dodati:
+
+```env
+MAIL_MAILER=log
+```
+
+Mejlovi se tada ne šalju stvarno, već se upisuju u `storage/logs/laravel.log` — dovoljno za testiranje.
+
 Vrednosti `DB_USERNAME`, `DB_PASSWORD` i ostalih parametara potrebno je prilagoditi lokalnoj MySQL konfiguraciji.
 
 ## Baza podataka
@@ -109,7 +118,7 @@ Seeder pravi i 3 fiksna naloga, po jedan za svaku ulogu (lozinka za sve: `passwo
 | `users` | Korisnici, sa `role` kolonom (`admin`, `authenticated_user`, `user`) |
 | `groups` | Grupe za deljenje troškova, svaka ima kreatora (`created_by`) |
 | `group_user` | Pivot tabela — članstvo korisnika u grupama (many-to-many) |
-| `expenses` | Troškovi, vezani za grupu (`group_id`) i platioca (`paid_by`) |
+| `expenses` | Troškovi, vezani za grupu (`group_id`) i platioca (`paid_by`), sa kategorijom (`category`) |
 | `personal_access_tokens` | Sanctum API tokeni |
 
 ## Pokretanje aplikacije
@@ -153,7 +162,7 @@ U Postman-u, za svaku zaštićenu rutu, u tabu **Authorization** izabrati tip **
 
 **5. Kreiranje troška**
 - `POST http://127.0.0.1:8000/api/expenses`
-- Body: `{ "description": "Racun za struju", "amount": 150, "group_id": 1 }` (zameniti `group_id` sa ID-jem iz koraka 3)
+- Body: `{ "description": "Racun za struju", "category": "Režije", "amount": 150, "group_id": 1 }` (zameniti `group_id` sa ID-jem iz koraka 3; `category` je obavezno polje)
 - Token: ✅ obavezan
 
 **6. Lista grupa / troškova (paginacija i filter)**
@@ -181,17 +190,27 @@ U Postman-u, za svaku zaštićenu rutu, u tabu **Authorization** izabrati tip **
 - Token: ✅ obavezan
 - Vraća CSV fajl za preuzimanje sa svim troškovima grupe (opis, iznos, ko je platio, datum)
 
-**11. Brisanje grupe (provera uloga)**
+**11. Ko duguje kome u grupi (settlement)**
+- `GET http://127.0.0.1:8000/api/groups/{id}/settlement`
+- Token: ✅ obavezan
+- Pretpostavka: svaki trošak grupe se deli ravnomerno na sve trenutne članove (kao Splitwise). Vraća za svakog člana koliko je platio, koliko je "fer" trebalo da plati, i status: `duguje` / `potražuje` / `izmireno`
+
+**12. Obaveštenje mejlom o dugu**
+- `POST http://127.0.0.1:8000/api/groups/{id}/notify-debts`
+- Token: ✅ obavezan
+- Šalje mejl (upisuje u `storage/logs/laravel.log` ako je `MAIL_MAILER=log`) svakom članu grupe koji trenutno duguje novac, na osnovu iste logike kao settlement
+
+**13. Brisanje grupe (provera uloga)**
 - `DELETE http://127.0.0.1:8000/api/groups/{id}`
 - Token: ✅ obavezan
 - `user` može obrisati samo svoju grupu, `authenticated_user` ne može nijednu, `admin` može svaku — testirati prijavom preko fiksnih seed naloga (vidi tabelu u sekciji Baza podataka) za razliku u odgovoru (200 vs 403)
 
-**12. Izmena/brisanje tuđeg troška (provera vlasništva — IDOR zaštita)**
-- `PUT` ili `DELETE http://127.0.0.1:8000/api/expenses/{id}`
+**14. Izmena/brisanje tuđeg troška ili grupe (provera vlasništva — IDOR zaštita)**
+- `PUT` ili `DELETE http://127.0.0.1:8000/api/expenses/{id}`, ili `PUT http://127.0.0.1:8000/api/groups/{id}`
 - Token: ✅ obavezan
-- Ako trošak nije kreirao ulogovani korisnik (i korisnik nije `admin`), vraća `403` — testirati prijavom kao drugi korisnik na tuđ trošak
+- Ako trošak/grupu nije kreirao ulogovani korisnik (i korisnik nije `admin`), vraća `403` — testirati prijavom kao drugi korisnik na tuđ trošak/grupu
 
-**13. Logout**
+**15. Logout**
 - `POST http://127.0.0.1:8000/api/logout`
 - Token: ✅ obavezan (nakon logout-a isti token više ne radi — sledeći zahtev s njim vraća `401`)
 
@@ -217,19 +236,21 @@ Sve rute zahtevaju autentifikaciju (`auth:sanctum`).
 | `/api/groups` | GET | Lista grupa (paginacija po 5, filter `?name=`) |
 | `/api/groups` | POST | Kreiranje grupe (ulogovani korisnik postaje kreator) |
 | `/api/groups/{id}` | GET | Detalji grupe (sa kreatorom, članovima, troškovima) |
-| `/api/groups/{id}` | PUT/PATCH | Izmena grupe |
+| `/api/groups/{id}` | PUT/PATCH | Izmena grupe — **samo kreator grupe ili admin** (IDOR zaštita) |
 | `/api/groups/{id}` | DELETE | Brisanje grupe — **ograničeno po ulozi**: `admin` briše svaku, `user` samo svoju, `authenticated_user` ne sme nijednu |
 | `/api/groups/{id}/expenses` | GET | Svi troškovi jedne grupe (ugnježdena ruta) |
 | `/api/groups/{id}/members` | POST | Dodavanje člana u grupu (`{ "user_id": 1 }`) |
 | `/api/groups/{id}/balance-summary` | GET | Ukupan iznos koji je svaki član grupe platio, sortirano opadajuće (JOIN + agregacija) |
 | `/api/groups/{id}/export-csv` | GET | Export svih troškova grupe u CSV fajl za preuzimanje |
+| `/api/groups/{id}/settlement` | GET | Ko duguje kome u grupi (ravnomerna podela troškova, kao Splitwise) |
+| `/api/groups/{id}/notify-debts` | POST | Šalje mejl svakom članu grupe koji trenutno duguje novac |
 
 ## Troškovi
 
 | Ruta | Metoda | Opis |
 | --- | --- | --- |
 | `/api/expenses` | GET | Lista troškova (paginacija po 5, filter `?min_amount=`, `?max_amount=`) |
-| `/api/expenses` | POST | Kreiranje troška (ulogovani korisnik postaje platilac) |
+| `/api/expenses` | POST | Kreiranje troška (ulogovani korisnik postaje platilac; `category` je obavezno polje) |
 | `/api/expenses/{id}` | GET | Detalji troška |
 | `/api/expenses/{id}` | PUT/PATCH | Izmena troška — **samo vlasnik troška ili admin** (IDOR zaštita) |
 | `/api/expenses/{id}` | DELETE | Brisanje troška — **samo vlasnik troška ili admin** (IDOR zaštita) |
@@ -265,6 +286,8 @@ expense-sharing-app/
 │   │   └── Resources/
 │   │       ├── GroupResource.php
 │   │       └── ExpenseResource.php
+│   ├── Mail/
+│   │   └── DebtNotification.php
 │   └── Models/
 │       ├── User.php
 │       ├── Group.php
@@ -277,6 +300,11 @@ expense-sharing-app/
 │       ├── UserSeeder.php
 │       ├── GroupSeeder.php
 │       └── ExpenseSeeder.php
+│
+├── resources/
+│   └── views/
+│       └── emails/
+│           └── debt-notification.blade.php
 │
 ├── routes/
 │   └── api.php
