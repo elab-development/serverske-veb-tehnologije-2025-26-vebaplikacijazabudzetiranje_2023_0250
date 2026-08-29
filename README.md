@@ -118,7 +118,7 @@ Seeder pravi i 3 fiksna naloga, po jedan za svaku ulogu (lozinka za sve: `passwo
 | `users` | Korisnici, sa `role` kolonom (`admin`, `authenticated_user`, `user`) |
 | `groups` | Grupe za deljenje troškova, svaka ima kreatora (`created_by`) |
 | `group_user` | Pivot tabela — članstvo korisnika u grupama (many-to-many) |
-| `expenses` | Troškovi, vezani za grupu (`group_id`) i platioca (`paid_by`), sa kategorijom (`category`) |
+| `expenses` | Troškovi, vezani za grupu (`group_id`) i platioca (`paid_by`), sa kategorijom (`category`) i datumom plaćanja (`paid_at`) |
 | `personal_access_tokens` | Sanctum API tokeni |
 
 ## Pokretanje aplikacije
@@ -162,7 +162,7 @@ U Postman-u, za svaku zaštićenu rutu, u tabu **Authorization** izabrati tip **
 
 **5. Kreiranje troška**
 - `POST http://127.0.0.1:8000/api/expenses`
-- Body: `{ "description": "Racun za struju", "category": "Režije", "amount": 150, "group_id": 1 }` (zameniti `group_id` sa ID-jem iz koraka 3; `category` je obavezno polje)
+- Body: `{ "description": "Racun za struju", "category": "Režije", "amount": 150, "group_id": 1, "paid_at": "2026-08-15" }` (zameniti `group_id` sa ID-jem iz koraka 3; `category` je obavezno polje; `paid_at` je opciono — ako se izostavi uzima se današnji datum)
 - Token: ✅ obavezan
 
 **6. Lista grupa / troškova (paginacija i filter)**
@@ -250,7 +250,7 @@ Sve rute zahtevaju autentifikaciju (`auth:sanctum`).
 | Ruta | Metoda | Opis |
 | --- | --- | --- |
 | `/api/expenses` | GET | Lista troškova (paginacija po 5, filter `?min_amount=`, `?max_amount=`) |
-| `/api/expenses` | POST | Kreiranje troška (ulogovani korisnik postaje platilac; `category` je obavezno polje) |
+| `/api/expenses` | POST | Kreiranje troška (ulogovani korisnik postaje platilac; `category` je obavezno polje; `paid_at` opciono — datum plaćanja, podrazumevano današnji) |
 | `/api/expenses/{id}` | GET | Detalji troška |
 | `/api/expenses/{id}` | PUT/PATCH | Izmena troška — **samo vlasnik troška ili admin** (IDOR zaštita) |
 | `/api/expenses/{id}` | DELETE | Brisanje troška — **samo vlasnik troška ili admin** (IDOR zaštita) |

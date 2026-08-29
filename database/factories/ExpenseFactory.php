@@ -10,7 +10,9 @@ class ExpenseFactory extends Factory
     {
         return [
             'description' => fake()->sentence(3),
+            'category' => fake()->randomElement(['Hrana', 'Piće', 'Prevoz', 'Smeštaj', 'Zabava', 'Ostalo']),
             'amount' => fake()->randomFloat(2, 10, 5000),
+            'paid_at' => fake()->dateTimeBetween('-2 months', 'now')->format('Y-m-d'),
             'group_id' => \App\Models\Group::factory(),
             'paid_by' => \App\Models\User::factory(),
         ];

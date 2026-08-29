@@ -308,14 +308,15 @@ public function balanceSummary($id)
             // BOM da bi Excel ispravno prikazao dijakritike (c, c, s...)
             fwrite($handle, "\xEF\xBB\xBF");
 
-            fputcsv($handle, ['Opis', 'Iznos', 'Platio', 'Datum']);
+            fputcsv($handle, ['Opis', 'Kategorija', 'Iznos', 'Platio', 'Datum plaćanja']);
 
             foreach ($expenses as $expense) {
                 fputcsv($handle, [
                     $expense->description,
+                    $expense->category ?? '',
                     $expense->amount,
                     $expense->payer->name ?? 'Nepoznato',
-                    $expense->created_at->format('d.m.Y H:i'),
+                    $expense->paid_at?->format('d.m.Y') ?? $expense->created_at->format('d.m.Y'),
                 ]);
             }
 
