@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Expense extends Model
 {
     use HasFactory;
-        protected $fillable = ['description', 'amount', 'group_id', 'paid_by'];
+        protected $fillable = ['description', 'category', 'amount', 'group_id', 'paid_by'];
 
     public function group()
     {

@@ -35,12 +35,14 @@ class ExpenseController extends Controller
     {
         $validated = $request->validate([
     'description' => 'required|string|max:255',
+    'category' => 'required|string|max:100',
     'amount' => 'required|numeric|min:0',
     'group_id' => 'required|exists:groups,id',
 ]);
 
 $expense = Expense::create([
     'description' => $validated['description'],
+    'category' => $validated['category'],
     'amount' => $validated['amount'],
     'group_id' => $validated['group_id'],
     'paid_by' => $request->user()->id,
@@ -82,6 +84,7 @@ if ($user->role !== 'admin' && $expense->paid_by !== $user->id) {
 
 $validated = $request->validate([
     'description' => 'sometimes|required|string|max:255',
+    'category' => 'sometimes|required|string|max:100',
     'amount' => 'sometimes|required|numeric|min:0',
 ]);
 
@@ -160,5 +163,4 @@ return response()->json(['message' => 'Trošak je uspešno obrisan']);
     return response()->json($data);
 }
 }
-
 
